@@ -512,11 +512,14 @@ class gru(operator):
         #####################################################################################
         # code here
         # reset gate
-        x_r = None
+        x_r = np.matmul(x ,kernel_r) + np.matmul(prev_h, recurrent_kernel_r)
+        x_r = sigmoid(x_r)
         # update gate
-        x_z = None
+        x_z = np.matmul(x ,kernel_z) + np.matmul(prev_h, recurrent_kernel_z)
+        x_z = sigmoid(x_z)
         # new gate
-        x_h = None
+        x_h = np.matmul(x ,kernel_h) + np.matmul(x_r * prev_h, recurrent_kernel_h)
+        x_h = np.tanh(x_h)
         #####################################################################################
 
         output = (1 - x_z) * x_h + x_z * prev_h
@@ -544,16 +547,35 @@ class gru(operator):
 
         #####################################################################################
         # code here
-        x_grad = None
-        prev_h_grad = None
+        # reset gate
+        x_r = np.matmul(x ,kernel_r) + np.matmul(prev_h, recurrent_kernel_r)
+        x_r = sigmoid(x_r)
+        # update gate
+        x_z = np.matmul(x ,kernel_z) + np.matmul(prev_h, recurrent_kernel_z)
+        x_z = sigmoid(x_z)
+        # new gate
+        x_h = np.matmul(x ,kernel_h) + np.matmul(x_r * prev_h, recurrent_kernel_h)
+        x_h = np.tanh(x_h)
+        
+        x_z_grad = out_grad * (prev_h - x_h)
+        x_z_before_sigmoid_grad = x_z_grad * x_z * (1 - x_z)
+        
+        x_h_grad = out_grad * (1 - x_z)
+        x_h_before_tanh_grad = x_h_grad * (1 - x_h ** 2)
+        
+        x_r_grad = np.matmul(x_h_before_tanh_grad, recurrent_kernel_h.T) * prev_h
+        x_r_before_sigmoid_grad = x_r_grad * x_r * (1 - x_r)
+        
+        x_grad = np.matmul(x_z_before_sigmoid_grad, kernel_z.T) + np.matmul(x_r_before_sigmoid_grad, kernel_r.T) + np.matmul(x_h_before_tanh_grad, kernel_h.T)
+        prev_h_grad = np.matmul(x_z_before_sigmoid_grad, recurrent_kernel_z.T) + np.matmul(x_r_before_sigmoid_grad, recurrent_kernel_r.T) + np.matmul(x_h_before_tanh_grad, recurrent_kernel_h.T) * x_r + out_grad * x_z
 
-        kernel_r_grad = None
-        kernel_z_grad = None
-        kernel_h_grad = None
+        kernel_r_grad = np.matmul(x.T, x_r_before_sigmoid_grad)
+        kernel_z_grad = np.matmul(x.T, x_z_before_sigmoid_grad)
+        kernel_h_grad = np.matmul(x.T, x_h_before_tanh_grad)
 
-        recurrent_kernel_r_grad = None
-        recurrent_kernel_z_grad = None
-        recurrent_kernel_h_grad = None
+        recurrent_kernel_r_grad = np.matmul(prev_h.T, x_r_before_sigmoid_grad)
+        recurrent_kernel_z_grad = np.matmul(prev_h.T, x_z_before_sigmoid_grad)
+        recurrent_kernel_h_grad = np.matmul((prev_h * x_r).T, x_h_before_tanh_grad)
         #####################################################################################
 
         in_grad = [x_grad, prev_h_grad]

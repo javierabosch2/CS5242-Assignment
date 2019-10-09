@@ -42,12 +42,11 @@ def MyModel():
                           initializer=Gaussian(std=0.001)))
     model.add(ReLU(name='relu2'))
     model.add(Pool2D(pool2_params, name='pooling2'))
-    # model.add(Dropout(ratio=0.25, name='dropout1'))
+    model.add(Dropout(rate=0.25, name='dropout1'))
     model.add(Flatten(name='flatten'))
     model.add(Linear(400, 256, name='fclayer1',
                       initializer=Gaussian(std=0.01)))
     model.add(ReLU(name='relu3'))
-    # model.add(Dropout(ratio=0.5))
     model.add(Linear(256, 10, name='fclayer2',
                       initializer=Gaussian(std=0.01)))
     return model
